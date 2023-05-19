@@ -550,7 +550,75 @@ val_coda: "conda activate myEnv && cd /home/Project && python valid.py --ckpt_pa
 #### 数据存储
 
 用户上传的模型的时候会进行minio的桶创建，每一个模型对应一个bucket，同时创建完模型数据后会数据集会统一存储到minio文件系统里，可以通过查询桶名称查看和下载对应文件
+##### 调用minio工具类，进行桶创建
+```Bash
+    /**
+     * 创建存储bucket
+     *
+     * @param bucketName 存储bucket名称
+     * @return Boolean
+     */
+    public static Boolean makeBucket(String bucketName) {
+        try {
+            minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
+        } catch (Exception e) {
+            log.error("minio error",e);
+            return false;
+        }
+
+        return true;
+    }
+```
+
+##### 调用MinioUtil的update
+```Bash
+    /**
+     * description: 上传文件
+     *
+     * @param multipartFile
+     * @return : java.lang.String
+     *
+     */
+    public static List<String> upload(MultipartFile[] multipartFile, String bucketName) {
+        List<String> names = new ArrayList<>(multipartFile.length);
+
+        for (MultipartFile file : multipartFile) {
+            String fileName = file.getOriginalFilename();
+            /*String[] split = fileName.split("\\.");
+
+            if (split.length > 1) {
+                fileName = split[0] + "_" + System.currentTimeMillis() + "." + split[1];
+            } else {
+                fileName = fileName + System.currentTimeMillis();
+            }*/
+            InputStream in = null;
+            try {
+
+                in = file.getInputStream();
+                minioClient.putObject(PutObjectArgs.builder().bucket(bucketName).object(fileName)
+                        .stream(in, in.available(), -1).contentType(file.getContentType()).build());
+            } catch (Exception e) {
+                log.error("minio error",e);
+            } finally {
+
+                if (in != null) {
+                    try {
+                        in.close();
+                    } catch (IOException e) {
+                        log.error("minio error",e);
+                    }
+                }
+            }
+            names.add(fileName);
+        }
+
+        return names;
+    }
+```
 
 #### 日志打印
 
 用户点击一键训练以后，会实时打印出训练日志，后台通过webSocket把日志信息发送到前端进行展示
+前端客户端发送 ws://<your ip address>:58090/webSocket 连接到webSocket服务上
+后台代码使用 tail -f 命令实时读取日志，每一行日志会发送一个wenSocket给前端
+
