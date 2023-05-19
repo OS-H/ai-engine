@@ -619,6 +619,6 @@ val_coda: "conda activate myEnv && cd /home/Project && python valid.py --ckpt_pa
 #### 日志打印
 
 用户点击一键训练以后，会实时打印出训练日志，后台通过webSocket把日志信息发送到前端进行展示
-前端客户端发送 ws://<your ip address>:58090/webSocket 连接到webSocket服务上
+前端客户端发送 ws://ip:58090/webSocket 连接到webSocket服务上
 后台代码使用 tail -f 命令实时读取日志，每一行日志会发送一个wenSocket给前端
 
